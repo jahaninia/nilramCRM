@@ -1,0 +1,15 @@
+{
+    "asterisk": {
+        "hostAmi": "127.0.0.1",
+        "portAmi": "5038",
+        "usernameAmi": "jahani",
+        "passwordAmi": "MQeBueyU"
+    },
+    "token":"3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "urlCall":"https://panelbak.asanito.com/api/asanito/Voip/Call",
+    "urlAnswer":"https://panelbak.asanito.com/api/asanito/Voip/Answer",
+    "urlReject":"https://panelbak.asanito.com/api/asanito/Voip/Reject",
+    "urlEndCall":"https://panelbak.asanito.com/api/asanito/Voip/EndCall",
+    "lengthExtension":3,
+    "debug": true
+}

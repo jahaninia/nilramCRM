@@ -1,0 +1,25 @@
+vi /etc/systemd/system/jolAskCloud.service
+	|
+[Unit]
+Description= Jol Asterisk Cloud
+After=multi-user.target
+[Service]
+Environment="CFG_PATH=/opt/jolAskCloud/config/config.json"
+User=root
+Group=root
+ExecStart=/opt/jolAskCloud/jolAskCloud
+[Install]
+
+
+[jahani]
+secret = MQeBueyU
+deny = 0.0.0.0/0.0.0.0
+permit = 127.0.0.1/255.255.255.255
+
+read = all
+write =no
+displayconnects=no
+eventfilter=Event: Newstate
+eventfilter=Event: Hangup
+eventfilter=Event: DialBegin
+eventfilter=Event: Cdr
