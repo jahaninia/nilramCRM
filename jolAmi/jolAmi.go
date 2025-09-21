@@ -124,7 +124,7 @@ func (j *jolAmi) DialBeginHandle(data map[string]string) {
 		}
 		j.callStore.Store(data["Uniqueid"], call)
 
-		var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\": \"0\" ,\"SRC\": \"%s\",\"DAKHELI\": \"%s\"}", data["Linkedid"], call.Caller, call.Callee)
+		var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\": \"1\" ,\"SRC\": \"%s\",\"DAKHELI\": \"%s\"}", data["Linkedid"], call.Caller, call.Callee)
 		var headers = map[string]string{"accept": "*/*", "Content-Type": "application/json", "Access-token": j.token}
 		jolRestApi.SendRequestJSON(j.urlCall, jsonData, headers)
 	}
@@ -171,23 +171,45 @@ func (j *jolAmi) NewstateHandle(data map[string]string) {
 
 func (j *jolAmi) BridgeEnterHandle(data map[string]string) {
 	j.DebugCheck("BridgeEnterHandle: {{ %s }}\n", data)
-	callerID := len(data["CallerIDNum"])
-	var called, calling string
-	if (callerID == j.lengthExtension && len(data["ConnectedLineNum"]) > j.lengthExtension || len(data["DestExten"]) == j.lengthExtension && callerID > j.lengthExtension) && data["Linkedid"] == data["Uniqueid"] && data["ChannelState"] == "6" {
 
-		if callerID > j.lengthExtension {
-			called = Normalization(data["CallerIDNum"])
-			calling = data["DestExten"]
-			data["CallerIDNum"] = called
-		} else {
-			called = Normalization(data["DestExten"])
-			calling = data["CallerIDNum"]
-			data["ConnectedLineNum"] = called
-		}
-		var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\": \"1\" ,\"SRC\": \"%s\",\"DAKHELI\": \"%s\"}", data["Linkedid"], called, calling)
+	// ***
+	uniqueid, ok := GetUniqueID(data)
+	if !ok {
+		return
+	}
+	if loaded, ok := j.callStore.Load(uniqueid); ok && data["ChannelState"] == "6" {
+		call := loaded.(*ChannelInfo)
+		j.DebugCheck("Link: %s => ConnectedLineNum:%s, CallerIDNum:%s, Exten:%s \n", call.LinkedID, data["ConnectedLineNum"], data["CallerIDNum"], data["Exten"])
+		call.Callee = data["ConnectedLineNum"]
+
+		j.callStore.Store(data["Uniqueid"], call)
+
+		var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\": \"1\" ,\"SRC\": \"%s\",\"DAKHELI\": \"%s\"}", uniqueid, call.Caller, call.Callee)
 		var headers = map[string]string{"accept": "*/*", "Content-Type": "application/json", "Access-token": j.token}
 		jolRestApi.SendRequestJSON(j.urlAnswer, jsonData, headers)
 	}
+
+	// ***
+	/*
+		callerID := len(data["CallerIDNum"])
+		var called, calling string
+		if (callerID == j.lengthExtension && len(data["ConnectedLineNum"]) > j.lengthExtension || len(data["DestExten"]) == j.lengthExtension && callerID > j.lengthExtension) && data["Linkedid"] == data["Uniqueid"] && data["ChannelState"] == "6" {
+
+			if callerID > j.lengthExtension {
+				called = Normalization(data["CallerIDNum"])
+				calling = data["DestExten"]
+				data["CallerIDNum"] = called
+			} else {
+				called = Normalization(data["DestExten"])
+				calling = data["CallerIDNum"]
+				data["ConnectedLineNum"] = called
+			}
+			var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\": \"1\" ,\"SRC\": \"%s\",\"DAKHELI\": \"%s\"}", data["Linkedid"], called, calling)
+	*/
+	// var headers = map[string]string{"accept": "*/*", "Content-Type": "application/json", "Access-token": j.token}
+	//jolRestApi.SendRequestJSON(j.urlAnswer, jsonData, headers)
+	// }
+
 }
 func (j *jolAmi) HangupHandle(data map[string]string) {
 	j.DebugCheck("HangupHandle: {{ %s }}\n", data)
@@ -212,28 +234,21 @@ func (j *jolAmi) HangupHandle(data map[string]string) {
 
 func (j *jolAmi) EndCallHandle(data map[string]string) {
 	j.DebugCheck("CDR: {{ %s }}\n", data)
-	uniqueId := GetUniqueID(data)
-	/*
-	   AnswerTime:
-	   BillableSeconds:0
-	   Destination:631
-	   Disposition:NO ANSWER
-	   Duration:8
-	   EndTime:2025-09-02 21:43:07
-	   Event:Cdr
-	   Source:+989123725778
-	   StartTime:2025-09-02 21:42:59
-	*/
+	uniqueId, ok := GetUniqueID(data)
+	if !ok {
+		return
+	}
 	// **
 
 	if loaded, ok := j.callStore.Load(uniqueId); ok {
 		call := loaded.(*ChannelInfo)
-		j.callStore.Store(uniqueId, call)
 		STS := 3
+		duration := "0"
 		if data["Disposition"] == "ANSWERED" {
 			STS = 2
+			duration = data["Duration"]
 		}
-		var jsonData = j.OutputByte("{\"uniqueId\": \"%s\",\"STS\":\"%d\",\"callerId\": \"%s\",\"DAKHELI\": \"%s\",\"duration\":\"%s\",\"buildSeconds\":\"%s\",\"callStatus\":\"%s\",\"fileUrl\":\"%s\"}", call.LinkedID, STS, call.Caller, call.Callee, data["Duration"], data["BillableSeconds"], data["Disposition"], "")
+		var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\":\"%d\",\"SRC\": \"%s\",\"DAKHELI\": \"%s\",\"DELAY_TIME\":\"%s\",\"fileUrl\":\"%s\"}", call.LinkedID, STS, call.Caller, call.Callee, duration, "")
 		var headers = map[string]string{"accept": "*/*", "Content-Type": "application/json", "Access-token": j.token}
 		j.callStore.Delete(uniqueId)
 		jolRestApi.SendRequestJSON(j.urlEndCall, jsonData, headers)
