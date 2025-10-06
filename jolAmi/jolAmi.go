@@ -10,10 +10,11 @@ import (
 )
 
 type ChannelInfo struct {
-	callerId int
-	Caller   string
-	Callee   string
-	LinkedID string
+	callerId  int
+	Caller    string
+	Callee    string
+	LinkedID  string
+	Direction int
 }
 type jolAmi struct {
 	wg              *sync.WaitGroup
@@ -117,14 +118,15 @@ func (j *jolAmi) DialBeginHandle(data map[string]string) {
 	if loaded, ok := j.callStore.Load(uniqueid); ok && data["DestExten"] != "s" {
 		call := loaded.(*ChannelInfo)
 		j.DebugCheck("Link: %s => DestCallerIDNum:%s, DestExten:%s, DialString:%s \n", call.LinkedID, data["DestCallerIDNum"], data["DestExten"], data["DialString"])
-		if data["Context"] == "ext-queues" {
-			call.Callee = data["DestExten"]
-		} else {
-			call.Callee = data["DialString"]
-		}
-		j.callStore.Store(data["Uniqueid"], call)
+		// if data["Context"] == "macro-dialout-trunk" {
+		// }else if data["Context"] == "ext-queues" {
+		// 	call.Callee = data["DestExten"]
+		// } else {
+		// 	call.Callee = data["DialString"]
+		// }
+		// j.callStore.Store(data["Uniqueid"], call)
 
-		var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\": \"1\" ,\"SRC\": \"%s\",\"DAKHELI\": \"%s\"}", data["Linkedid"], call.Caller, call.Callee)
+		var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\": \"1\" ,\"SRC\": \"%s\",\"DAKHELI\": \"%s\",\"IN_OUT\": \"%d\"}", data["Linkedid"], call.Caller, call.Callee, call.Direction)
 		var headers = map[string]string{"accept": "*/*", "Content-Type": "application/json", "Access-token": j.token}
 		jolRestApi.SendRequestJSON(j.urlCall, jsonData, headers)
 	}
@@ -154,6 +156,7 @@ func (j *jolAmi) NewstateHandle(data map[string]string) {
 	j.DebugCheck("NewstateHandle: {{ %s }}\n", data)
 	callerID := len(data["CallerIDNum"])
 	var called, calling string
+
 	if (callerID == j.lengthExtension && len(data["ConnectedLineNum"]) > j.lengthExtension || len(data["ConnectedLineNum"]) == j.lengthExtension && callerID > j.lengthExtension) && data["Linkedid"] == data["Uniqueid"] && data["ChannelState"] == "6" {
 
 		if callerID > j.lengthExtension {
@@ -291,11 +294,18 @@ func (j *jolAmi) NewchannelHandle(data map[string]string) {
 	if !ok {
 		return
 	}
+	direction := 0
 	if uniqueid == data["Linkedid"] && data["Exten"] != "s" && (len(data["CallerIDNum"]) != len(data["Exten"])) {
+		if data["Context"] == "from-internal" && data["ChannelState"] == "0" {
+			direction = 1
+		}
+
 		j.callStore.Store(data["Uniqueid"], &ChannelInfo{
-			callerId: len(data["CallerIDNum"]),
-			Caller:   data["CallerIDNum"],
-			LinkedID: uniqueid,
+			callerId:  len(data["CallerIDNum"]),
+			Caller:    data["CallerIDNum"],
+			Callee:    data["Exten"][1:],
+			Direction: direction,
+			LinkedID:  uniqueid,
 		})
 	}
 }
