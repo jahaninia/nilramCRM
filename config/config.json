@@ -1,6 +1,6 @@
 {
     "asterisk": {
-        "hostAmi": "127.0.0.1",
+        "hostAmi": "192.168.97.116",
         "portAmi": "5038",
         "usernameAmi": "jahani",
         "passwordAmi": "MQeBueyU"

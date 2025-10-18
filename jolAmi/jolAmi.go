@@ -122,16 +122,18 @@ func (j *jolAmi) DialBeginHandle(data map[string]string) {
 	}
 	if loaded, ok := j.callStore.Load(data["Linkedid"]); ok && data["DestExten"] != "s" {
 		call := loaded.(*ChannelInfo)
-		j.DebugCheck("**************Call Info in memory:%+v\n", call)
+		j.DebugCheck("**************Call Info in memory:%v\n", call)
 
 		j.DebugCheck("Link: %s => DestCallerIDNum:%s, DestExten:%s, DialString:%s \n", call.LinkedID, data["DestCallerIDNum"], data["DestExten"], data["DialString"])
-		if call.Direction == 0 && call.Callee == "NULL" && call.LinkedID != uniqueid {
-			if data["Context"] == "from-queue" {
-				call.Callee = data["Exten"]
-				call.Extension = call.Callee
-			}
+
+		if call.Direction == 0 && call.Callee == "NULL" && call.LinkedID == uniqueid {
 			if data["Context"] == "macro-dial-one" {
 				call.Callee = data["DialString"]
+				call.Extension = call.Callee
+			}
+		} else if call.Direction == 0 && call.Callee == "NULL" && call.LinkedID != uniqueid {
+			if data["Context"] == "from-queue" {
+				call.Callee = data["Exten"]
 				call.Extension = call.Callee
 			}
 
@@ -400,13 +402,15 @@ func (j *jolAmi) NewchannelHandle(data map[string]string) {
 		if data["Context"] == "from - queue" && call.Direction == 0 {
 			call.Callee = data["Exten"]
 			call.Extension = call.Callee
+			j.callStore.Store(call.LinkedID, call)
 		}
 		if data["Context"] == "from-internal" && len(data["CallerIDNum"]) == j.lengthExtension && data["ChannelState"] == "0" {
 			call.Callee = data["CallerIDNum"]
 			call.Extension = call.Callee
-		}
+			j.callStore.Store(call.LinkedID, call)
 
-		j.callStore.Store(call.LinkedID, call)
+		}
+		fmt.Printf("***{{%+v}}***", call)
 
 	} else if uniqueid == data["Linkedid"] && data["Exten"] != "s" {
 		var channel ChannelInfo
@@ -428,9 +432,11 @@ func (j *jolAmi) NewchannelHandle(data map[string]string) {
 			channel.Extension = channel.Caller
 			channel.SRC = channel.Callee
 		}
+		fmt.Printf("***{{%v}}***", channel)
 
 		j.callStore.Store(data["Uniqueid"], &channel)
 	}
+
 }
 func Normalization(callerID string) (normalizedNumber string) {
 
