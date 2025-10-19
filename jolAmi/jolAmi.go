@@ -122,7 +122,7 @@ func (j *jolAmi) DialBeginHandle(data map[string]string) {
 	}
 	if loaded, ok := j.callStore.Load(data["Linkedid"]); ok && data["DestExten"] != "s" {
 		call := loaded.(*ChannelInfo)
-		j.DebugCheck("**************Call Info in memory:%v\n", call)
+		fmt.Printf("**************Call Info in memory:%#v\n", call)
 
 		j.DebugCheck("Link: %s => DestCallerIDNum:%s, DestExten:%s, DialString:%s \n", call.LinkedID, data["DestCallerIDNum"], data["DestExten"], data["DialString"])
 
@@ -135,10 +135,11 @@ func (j *jolAmi) DialBeginHandle(data map[string]string) {
 			if data["Context"] == "from-queue" {
 				call.Callee = data["Exten"]
 				call.Extension = call.Callee
-			}
+			} else {
 
-			call.Callee = data["DestExten"]
-			call.Extension = call.Callee
+				call.Callee = data["DestExten"]
+				call.Extension = call.Callee
+			}
 
 		}
 		// if data["Context"] == "macro-dialout-trunk" {
@@ -250,19 +251,16 @@ func (j *jolAmi) NewstateHandle(data map[string]string) {
 func (j *jolAmi) BridgeEnterHandle(data map[string]string) {
 	j.DebugCheck("BridgeEnterHandle: {{ %s }}\n", data)
 
-	// ***
-	_, ok := GetUniqueID(data)
+	uniqueid, ok := GetUniqueID(data)
 	if !ok {
 		return
 	}
-	if loaded, ok := j.callStore.Load(data["Linkedid"]); ok && data["ChannelState"] == "6" {
+
+	// ***
+
+	if loaded, ok := j.callStore.Load(data["Linkedid"]); ok && data["ChannelState"] == "6" && data["Linkedid"] == uniqueid {
 		call := loaded.(*ChannelInfo)
 		call.STS = 2
-		j.DebugCheck("Link: %s => ConnectedLineNum:%s, CallerIDNum:%s, Exten:%s \n", call.LinkedID, data["ConnectedLineNum"], data["CallerIDNum"], data["Exten"])
-
-		call.Callee = data["ConnectedLineNum"]
-		call.Extension = call.Callee
-
 		j.callStore.Store(call.LinkedID, call)
 
 		var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\": \"%d\" ,\"SRC\": \"%s\",\"DAKHELI\": \"%s\"}", call.LinkedID, call.STS, call.SRC, call.Extension)
@@ -391,7 +389,7 @@ func (j *jolAmi) EndCallHandle(data map[string]string) {
 }
 
 func (j *jolAmi) NewchannelHandle(data map[string]string) {
-	j.DebugCheck("Newchanne: {{ %s }}\n", data)
+	j.DebugCheck("Newchannel: {{ %s }}\n", data)
 	uniqueid, ok := GetUniqueID(data)
 	if !ok {
 		return
@@ -399,6 +397,8 @@ func (j *jolAmi) NewchannelHandle(data map[string]string) {
 
 	if loaded, ok := j.callStore.Load(data["Linkedid"]); ok {
 		call := loaded.(*ChannelInfo)
+		fmt.Printf("**************Newchanne**Call Info in memory:%#v\n", call)
+
 		if data["Context"] == "from - queue" && call.Direction == 0 {
 			call.Callee = data["Exten"]
 			call.Extension = call.Callee
