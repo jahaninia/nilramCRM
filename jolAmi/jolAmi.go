@@ -336,21 +336,22 @@ func (j *jolAmi) HangupHandle(data map[string]string) {
 
 func (j *jolAmi) EndCallHandle(data map[string]string) {
 	j.DebugCheck("CDR: {{ %s }}\n", data)
-	_, ok := GetUniqueID(data)
+	uniqueid, ok := GetUniqueID(data)
 	if !ok {
 		return
 	}
 	// **
 
-	if loaded, ok := j.callStore.Load(data["Linkedid"]); ok {
+	if loaded, ok := j.callStore.Load(uniqueid); ok {
 		call := loaded.(*ChannelInfo)
-
-		duration := "0"
-		call.STS = 3
-		if data["Disposition"] == "ANSWERED" {
-			call.STS = 2
-			duration = data["Duration"]
+		fmt.Printf("**************CDR**Call Info in memory:%#v\n", call)
+		duration:="0"
+		if call.STS != 2 {
+			call.STS = 3
 		}
+
+		duration = data["Duration"]
+	}
 		var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\":\"%d\",\"SRC\": \"%s\",\"DAKHELI\": \"%s\",\"DELAY_TIME\":\"%s\",\"fileUrl\":\"%s\"}", call.LinkedID, call.STS, call.SRC, call.Extension, duration, "")
 		var headers = map[string]string{"accept": "*/*", "Content-Type": "application/json", "Access-token": j.token}
 		j.callStore.Delete(call.LinkedID)
@@ -410,8 +411,6 @@ func (j *jolAmi) NewchannelHandle(data map[string]string) {
 			j.callStore.Store(call.LinkedID, call)
 
 		}
-		fmt.Printf("***{{%+v}}***", call)
-
 	} else if uniqueid == data["Linkedid"] && data["Exten"] != "s" {
 		var channel ChannelInfo
 		channel.Direction = 0
@@ -432,7 +431,7 @@ func (j *jolAmi) NewchannelHandle(data map[string]string) {
 			channel.Extension = channel.Caller
 			channel.SRC = channel.Callee
 		}
-		fmt.Printf("***{{%v}}***", channel)
+		fmt.Printf("**************Newchanne*END*Call Info in memory:%#v\n", call)
 
 		j.callStore.Store(data["Uniqueid"], &channel)
 	}
