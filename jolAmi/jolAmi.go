@@ -345,13 +345,13 @@ func (j *jolAmi) EndCallHandle(data map[string]string) {
 	if loaded, ok := j.callStore.Load(uniqueid); ok {
 		call := loaded.(*ChannelInfo)
 		fmt.Printf("**************CDR**Call Info in memory:%#v\n", call)
-		duration:="0"
+		duration := "0"
 		if call.STS != 2 {
 			call.STS = 3
 		}
 
 		duration = data["Duration"]
-	}
+
 		var jsonData = j.OutputByte("{\"ID\": \"%s\",\"STS\":\"%d\",\"SRC\": \"%s\",\"DAKHELI\": \"%s\",\"DELAY_TIME\":\"%s\",\"fileUrl\":\"%s\"}", call.LinkedID, call.STS, call.SRC, call.Extension, duration, "")
 		var headers = map[string]string{"accept": "*/*", "Content-Type": "application/json", "Access-token": j.token}
 		j.callStore.Delete(call.LinkedID)
@@ -431,7 +431,7 @@ func (j *jolAmi) NewchannelHandle(data map[string]string) {
 			channel.Extension = channel.Caller
 			channel.SRC = channel.Callee
 		}
-		fmt.Printf("**************Newchanne*END*Call Info in memory:%#v\n", call)
+		fmt.Printf("**************Newchanne*END*Call Info in memory:%#v\n", channel)
 
 		j.callStore.Store(data["Uniqueid"], &channel)
 	}
