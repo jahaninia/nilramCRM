@@ -70,16 +70,16 @@ func eventsProcessor(e map[string]string, j *jolAmi) {
 	switch e["Event"] {
 	case "DialBegin":
 		j.DialBeginHandle(e)
-	case "Newstate":
-		j.NewstateHandle(e)
+	//case "Newstate":
+	//j.NewstateHandle(e)
 	case "BridgeEnter":
 		j.BridgeEnterHandle(e)
 	// case "BridgeLeave":
 	// 	BridgeLeaveHandle(e, config.UrlReject, config.Token, config.Length, config.Debug)
 	case "NewConnectedLine":
 		j.NewConnectedLineHandle(e)
-	case "Hangup":
-		j.HangupHandle(e)
+	//case "Hangup":
+	//	j.HangupHandle(e)
 	case "Cdr":
 		j.EndCallHandle(e)
 	case "Newchannel":
