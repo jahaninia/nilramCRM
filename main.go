@@ -16,7 +16,7 @@ var (
 )
 
 func main() {
-	log.Println("Start")
+	log.Println("Start-V2")
 	var cfgPath = ""
 	if e := os.Getenv("CFG_PATH"); len(e) > 0 {
 		cfgPath = e

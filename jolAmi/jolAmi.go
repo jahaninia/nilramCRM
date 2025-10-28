@@ -400,7 +400,7 @@ func (j *jolAmi) NewchannelHandle(data map[string]string) {
 		call := loaded.(*ChannelInfo)
 		fmt.Printf("**************Newchanne**Call Info in memory:%#v\n", call)
 
-		if data["Context"] == "from - queue" && call.Direction == 0 {
+		if data["Context"] == "from-queue" && call.Direction == 0 {
 			call.Callee = data["Exten"]
 			call.Extension = call.Callee
 			j.callStore.Store(call.LinkedID, call)
@@ -411,7 +411,7 @@ func (j *jolAmi) NewchannelHandle(data map[string]string) {
 			j.callStore.Store(call.LinkedID, call)
 
 		}
-	} else if uniqueid == data["Linkedid"] && data["Exten"] != "s" {
+	} else if uniqueid == data["Linkedid"] && data["Exten"] != "s" && len(data["CallerIDNum"]) != len(data["Exten"]) {
 		var channel ChannelInfo
 		channel.Direction = 0
 		channel.LinkedID = uniqueid
@@ -422,18 +422,21 @@ func (j *jolAmi) NewchannelHandle(data map[string]string) {
 			channel.Caller = Normalization(data["CallerIDNum"])
 			channel.SRC = channel.Caller
 			channel.Callee = "NULL"
+			j.callStore.Store(data["Uniqueid"], &channel)
+
 		}
 
-		if data["Context"] == "from-internal" && data["ChannelState"] == "0" {
+		if data["Context"] == "from-internal" && data["ChannelState"] == "0" && len(data["Exten"]) > j.lengthExtension {
 			channel.Direction = 1
 			channel.Callee = data["Exten"][1:]
 			channel.Caller = data["CallerIDNum"]
 			channel.Extension = channel.Caller
 			channel.SRC = channel.Callee
+			j.callStore.Store(data["Uniqueid"], &channel)
+
 		}
 		fmt.Printf("**************Newchanne*END*Call Info in memory:%#v\n", channel)
 
-		j.callStore.Store(data["Uniqueid"], &channel)
 	}
 
 }
